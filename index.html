@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>골목길 사각지대 시뮬레이터</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;700&family=IBM+Plex+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0b1220; --panel:#131c30; --panel2:#0f1626; --line:#243352;
+    --ink:#e8edf7; --dim:#8494b8; --accent:#ffd54a;
+    --green:#2fae6b; --blue:#4a86e8; --red:#e05252; --cyan:#39d5ff;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{
+    background:
+      radial-gradient(1200px 500px at 50% -10%, #16233f 0%, var(--bg) 55%),
+      var(--bg);
+    color:var(--ink);
+    font-family:'IBM Plex Sans KR',sans-serif;
+    min-height:100vh; padding:14px 14px 40px;
+  }
+  .wrap{max-width:560px;margin:0 auto}
+  header{padding:10px 2px 16px}
+  .eyebrow{
+    font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:.22em;
+    color:var(--cyan); text-transform:uppercase; margin-bottom:6px;
+  }
+  h1{font-size:22px;font-weight:700;line-height:1.3}
+  h1 .thin{color:var(--dim);font-weight:400}
+  .card{
+    background:linear-gradient(180deg,var(--panel) 0%,var(--panel2) 100%);
+    border:1px solid var(--line); border-radius:14px; overflow:hidden;
+    box-shadow:0 10px 30px rgba(0,0,0,.35);
+  }
+  #cv{display:block;width:100%;touch-action:manipulation}
+  .stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0}
+  .stat{
+    background:linear-gradient(180deg,var(--panel) 0%,var(--panel2) 100%);
+    border:1px solid var(--line);border-radius:12px;padding:12px 14px;
+  }
+  .stat .lb{font-size:11px;color:var(--dim);letter-spacing:.08em;margin-bottom:4px}
+  .stat .vl{font-family:'IBM Plex Mono',monospace;font-size:26px;font-weight:700}
+  #blindV{color:var(--red)}
+  #objV{font-size:17px;line-height:1.25;padding-top:4px}
+  .fanline{
+    margin:2px 0 12px;padding:10px 14px;border-radius:12px;
+    background:rgba(57,213,255,.06);border:1px dashed rgba(57,213,255,.35);
+    font-size:13px;color:var(--dim);line-height:1.55;
+  }
+  .fanline b{color:var(--cyan);font-family:'IBM Plex Mono',monospace}
+  .sliders{display:flex;flex-direction:column;gap:14px;padding:16px 16px 18px}
+  .srow .top{display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px}
+  .srow .nm{color:var(--ink);font-weight:500}
+  .srow .vv{font-family:'IBM Plex Mono',monospace;color:var(--accent);font-weight:700}
+  input[type=range]{
+    -webkit-appearance:none;appearance:none;width:100%;height:26px;background:transparent;
+  }
+  input[type=range]::-webkit-slider-runnable-track{
+    height:6px;border-radius:3px;background:#22304f;
+  }
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none;appearance:none;width:24px;height:24px;border-radius:50%;
+    background:var(--accent);border:3px solid #0b1220;margin-top:-9px;
+    box-shadow:0 0 0 2px var(--accent),0 3px 8px rgba(0,0,0,.5);
+  }
+  input[type=range]::-moz-range-track{height:6px;border-radius:3px;background:#22304f}
+  input[type=range]::-moz-range-thumb{
+    width:20px;height:20px;border-radius:50%;background:var(--accent);
+    border:3px solid #0b1220;box-shadow:0 0 0 2px var(--accent);
+  }
+  .presets{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0 4px}
+  .pbtn{
+    border:1px solid var(--line);background:var(--panel);color:var(--ink);
+    border-radius:10px;padding:11px 6px;font-size:13px;font-weight:500;
+    font-family:inherit;cursor:pointer;transition:transform .08s,border-color .15s;
+  }
+  .pbtn:active{transform:scale(.96)}
+  .pbtn.hot{border-color:var(--accent);color:var(--accent)}
+  .legend{display:flex;flex-wrap:wrap;gap:8px 14px;padding:12px 4px 0;font-size:12px;color:var(--dim)}
+  .legend .it{display:flex;align-items:center;gap:6px}
+  .sw{width:12px;height:12px;border-radius:3px;flex:0 0 auto}
+  footer{margin-top:22px;text-align:center;font-size:11.5px;color:var(--dim);line-height:1.7}
+  footer .mono{font-family:'IBM Plex Mono',monospace;color:#5b6c92}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Blind-Zone Ray Tracer</div>
+    <h1>ㄱ자 골목길 사각지대 시뮬레이터 <span class="thin">— 볼록거울 조건 실험</span></h1>
+  </header>
+
+  <div class="card"><canvas id="cv"></canvas></div>
+
+  <div class="legend">
+    <span class="it"><span class="sw" style="background:var(--green)"></span>직접 보임</span>
+    <span class="it"><span class="sw" style="background:var(--blue)"></span>거울로만 보임</span>
+    <span class="it"><span class="sw" style="background:var(--red)"></span>사각지대</span>
+    <span class="it"><span class="sw" style="background:var(--accent)"></span>반사 광선</span>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><div class="lb">수평 통로 사각지대</div><div class="vl" id="blindV">–</div></div>
+    <div class="stat"><div class="lb">물체(보행자) 판정</div><div class="vl" id="objV">–</div></div>
+  </div>
+
+  <div class="fanline" id="fanline">부채꼴 각폭 계산 중…</div>
+
+  <div class="presets">
+    <button class="pbtn" data-p="flat">평면에 가까운 거울</button>
+    <button class="pbtn" data-p="mid">중간 곡률</button>
+    <button class="pbtn hot" data-p="convex">강한 볼록거울</button>
+  </div>
+
+  <div class="card sliders">
+    <div class="srow"><div class="top"><span class="nm">거울 폭 w</span><span class="vv" id="wV"></span></div>
+      <input type="range" id="wS" min="0.4" max="2.4" step="0.1" value="0.8"></div>
+    <div class="srow"><div class="top"><span class="nm">곡률 반지름 R (작을수록 볼록)</span><span class="vv" id="rV"></span></div>
+      <input type="range" id="rS" min="0.3" max="5.0" step="0.1" value="2.5"></div>
+    <div class="srow"><div class="top"><span class="nm">카메라 위치</span><span class="vv" id="cV"></span></div>
+      <input type="range" id="cS" min="0.3" max="7.5" step="0.1" value="0.6"></div>
+    <div class="srow"><div class="top"><span class="nm">물체 위치</span><span class="vv" id="oV"></span></div>
+      <input type="range" id="oS" min="3.5" max="11.5" step="0.25" value="11.0"></div>
+  </div>
+
+  <footer>
+    사각지대를 최소화하는 거울 설치 조건의 수학적 모델링<br>
+    <span class="mono">rule: blind = 0 when 4·arcsin(w/2R) ≥ 47°  (R ≤ 2.5w)</span>
+  </footer>
+</div>
+
+<script>
+"use strict";
+// ─── 물리 엔진 (파이썬 시뮬레이션과 수치 검증 완료) ───
+const W=3.0, HL=12.0, VL=9.0, CY=VL+W;
+
+function makeEnv(w,R0,camY,objX){
+  const R=Math.max(R0,w/2+1e-6);
+  const u=[1/Math.SQRT2,-1/Math.SQRT2];
+  const e=w/Math.SQRT2;
+  const cm=[e/2,CY-e/2];
+  const sag=R-Math.sqrt(Math.max(R*R-(w/2)**2,0));
+  const apex=[cm[0]+sag*u[0],cm[1]+sag*u[1]];
+  const center=[apex[0]-R*u[0],apex[1]-R*u[1]];
+  const half=Math.asin(Math.min(w/(2*R),1));
+  const tc=Math.atan2(u[1],u[0]);
+  return {w,R,center,arcMin:tc-half,arcMax:tc+half,half,
+    cam:[W/2,camY],obj:[objX,VL+W/2],
+    walls:[[[0,0],[0,CY]],[[0,0],[W,0]],[[W,0],[W,VL]],
+           [[W,VL],[HL,VL]],[[0,CY],[HL,CY]],[[HL,VL],[HL,CY]]]};
+}
+function raySeg(ro,rd,s0,s1){
+  const dx=s1[0]-s0[0],dy=s1[1]-s0[1];
+  const cr=rd[0]*dy-rd[1]*dx;
+  if(Math.abs(cr)<1e-12)return null;
+  const ox=s0[0]-ro[0],oy=s0[1]-ro[1];
+  const t=(ox*dy-oy*dx)/cr, uu=(ox*rd[1]-oy*rd[0])/cr;
+  return (t>1e-9&&uu>=-1e-9&&uu<=1+1e-9)?t:null;
+}
+function rayArc(ro,rd,env){
+  const ox=ro[0]-env.center[0],oy=ro[1]-env.center[1];
+  const b=2*(ox*rd[0]+oy*rd[1]), c=ox*ox+oy*oy-env.R*env.R;
+  const d=b*b-4*c; if(d<0)return null;
+  const sq=Math.sqrt(d);
+  const t1=(-b-sq)/2,t2=(-b+sq)/2;
+  for(const t of (t1<t2?[t1,t2]:[t2,t1])){
+    if(t>1e-9){
+      const px=ro[0]+t*rd[0],py=ro[1]+t*rd[1];
+      const a=Math.atan2(py-env.center[1],px-env.center[0]);
+      if(a>=env.arcMin-1e-9&&a<=env.arcMax+1e-9)return t;
+    }
+  }
+  return null;
+}
+function inAlley(x,y,env){
+  const v=(x>=0&&x<=W&&y>=0&&y<=CY), h=(x>=0&&x<=HL&&y>=VL&&y<=CY);
+  if(!v&&!h)return false;
+  const dx=x-env.center[0],dy=y-env.center[1];
+  if(Math.hypot(dx,dy)<env.R){
+    const a=Math.atan2(dy,dx);
+    if(a>=env.arcMin-1e-9&&a<=env.arcMax+1e-9)return false;
+  }
+  return true;
+}
+function blocked(p0,p1,env){
+  const dx=p1[0]-p0[0],dy=p1[1]-p0[1],L=Math.hypot(dx,dy);
+  if(L<1e-9)return false;
+  const rd=[dx/L,dy/L];
+  for(const [s0,s1] of env.walls){
+    const t=raySeg(p0,rd,s0,s1);
+    if(t!==null&&t<L-1e-6)return true;
+  }
+  const mt=rayArc(p0,rd,env);
+  return mt!==null&&mt<L-1e-6;
+}
+function compute(env,res=0.18,nRays=700){
+  const nx=Math.floor(HL/res),ny=Math.floor(CY/res);
+  const g=new Int8Array(nx*ny);
+  for(let j=0;j<ny;j++)for(let i=0;i<nx;i++){
+    const x=(i+.5)*res,y=(j+.5)*res;
+    if(!inAlley(x,y,env))continue;
+    g[j*nx+i]=blocked(env.cam,[x,y],env)?1:2;
+  }
+  const rays=[];
+  for(let k=0;k<nRays;k++){
+    const a=env.arcMin+1e-3+(env.arcMax-env.arcMin-2e-3)*k/(nRays-1);
+    const n=[Math.cos(a),Math.sin(a)];
+    const M=[env.center[0]+env.R*n[0],env.center[1]+env.R*n[1]];
+    const v=[M[0]-env.cam[0],M[1]-env.cam[1]];
+    if(v[0]*n[0]+v[1]*n[1]>=0)continue;
+    if(blocked(env.cam,[env.cam[0]+.999*v[0],env.cam[1]+.999*v[1]],env))continue;
+    const L=Math.hypot(v[0],v[1]);
+    const di=[v[0]/L,v[1]/L], dn=di[0]*n[0]+di[1]*n[1];
+    const dO=[di[0]-2*dn*n[0],di[1]-2*dn*n[1]];
+    let wt=Infinity;
+    for(const [s0,s1] of env.walls){
+      const t=raySeg(M,dO,s0,s1);
+      if(t!==null&&t<wt)wt=t;
+    }
+    const end=wt<Infinity?wt:50;
+    const steps=Math.max(2,(end/(res*.25))|0);
+    for(let s=0;s<=steps;s++){
+      const px=M[0]+dO[0]*end*s/steps,py=M[1]+dO[1]*end*s/steps;
+      const i=(px/res)|0,j=(py/res)|0;
+      if(i>=0&&i<nx&&j>=0&&j<ny&&g[j*nx+i]===1)g[j*nx+i]=3;
+    }
+    rays.push({M,dO,end});
+  }
+  let tot=0,bl=0;
+  for(let j=0;j<ny;j++)for(let i=0;i<nx;i++){
+    const x=(i+.5)*res,y=(j+.5)*res;
+    if(x>=W&&x<=HL&&y>=VL&&y<=CY&&g[j*nx+i]!==0){tot++;if(g[j*nx+i]===1)bl++;}
+  }
+  return {g,nx,ny,res,rays,blind:tot?100*bl/tot:0};
+}
+
+// ─── 캔버스 렌더링 ───
+const cv=document.getElementById('cv'),ctx=cv.getContext('2d');
+let PX=1,PAD=26,SC=1;
+function sizeCanvas(){
+  PX=Math.min(window.devicePixelRatio||1,2);
+  const wCss=cv.parentElement.clientWidth;
+  const hCss=Math.round(wCss*1.0);
+  cv.width=wCss*PX;cv.height=hCss*PX;
+  cv.style.height=hCss+'px';
+  SC=(wCss-2*PAD)/HL;
+}
+const w2x=x=>PAD+x*SC, w2y=y=>PAD+(CY-y)*SC;
+
+function draw(env,out){
+  ctx.setTransform(PX,0,0,PX,0,0);
+  ctx.clearRect(0,0,cv.width,cv.height);
+  const CM={1:'rgba(224,82,82,.60)',2:'rgba(47,174,107,.42)',3:'rgba(74,134,232,.55)'};
+  const cs=out.res*SC;
+  for(let j=0;j<out.ny;j++)for(let i=0;i<out.nx;i++){
+    const v=out.g[j*out.nx+i]; if(!v)continue;
+    ctx.fillStyle=CM[v];
+    ctx.fillRect(w2x(i*out.res),w2y((j+1)*out.res),cs+0.6,cs+0.6);
+  }
+  // 표시용 광선 (30개만 골라서)
+  ctx.strokeStyle='rgba(255,213,74,.75)';ctx.lineWidth=1.1;
+  const step=Math.max(1,(out.rays.length/30)|0);
+  for(let k=0;k<out.rays.length;k+=step){
+    const r=out.rays[k];
+    ctx.beginPath();
+    ctx.moveTo(w2x(env.cam[0]),w2y(env.cam[1]));
+    ctx.lineTo(w2x(r.M[0]),w2y(r.M[1]));
+    ctx.lineTo(w2x(r.M[0]+r.dO[0]*r.end),w2y(r.M[1]+r.dO[1]*r.end));
+    ctx.stroke();
+  }
+  // 벽
+  ctx.strokeStyle='#9db8ff';ctx.lineWidth=3;ctx.lineCap='round';
+  for(const [s0,s1] of env.walls){
+    ctx.beginPath();ctx.moveTo(w2x(s0[0]),w2y(s0[1]));ctx.lineTo(w2x(s1[0]),w2y(s1[1]));ctx.stroke();
+  }
+  // 거울 캡
+  ctx.beginPath();
+  const N=40;
+  for(let k=0;k<=N;k++){
+    const a=env.arcMin+(env.arcMax-env.arcMin)*k/N;
+    const px=env.center[0]+env.R*Math.cos(a),py=env.center[1]+env.R*Math.sin(a);
+    k?ctx.lineTo(w2x(px),w2y(py)):ctx.moveTo(w2x(px),w2y(py));
+  }
+  ctx.closePath();
+  ctx.fillStyle='rgba(210,210,226,.92)';ctx.fill();
+  ctx.strokeStyle='#f2f2fa';ctx.lineWidth=3.5;ctx.stroke();
+  // 카메라 & 물체
+  ctx.fillStyle='#00ff88';
+  ctx.fillRect(w2x(env.cam[0])-7,w2y(env.cam[1])-7,14,14);
+  ctx.strokeStyle='#fff';ctx.lineWidth=1.5;
+  ctx.strokeRect(w2x(env.cam[0])-7,w2y(env.cam[1])-7,14,14);
+  const oi=(env.obj[0]/out.res)|0,oj=(env.obj[1]/out.res)|0;
+  const ov=out.g[oj*out.nx+oi];
+  const oc=ov===2?'#2fae6b':ov===3?'#4a86e8':'#e05252';
+  ctx.save();
+  ctx.translate(w2x(env.obj[0]),w2y(env.obj[1]));ctx.rotate(Math.PI/4);
+  ctx.fillStyle=oc;ctx.fillRect(-8,-8,16,16);
+  ctx.strokeStyle='#fff';ctx.strokeRect(-8,-8,16,16);
+  ctx.restore();
+  ctx.font='700 12px "IBM Plex Sans KR"';
+  ctx.fillStyle='#00ff88';ctx.fillText('카메라',w2x(env.cam[0])+12,w2y(env.cam[1])+4);
+  ctx.fillStyle='#cfd6e6';ctx.fillText('볼록거울',w2x(0.9),w2y(CY-1.55));
+  return ov;
+}
+
+// ─── UI 연결 ───
+const $=id=>document.getElementById(id);
+const S={w:$('wS'),r:$('rS'),c:$('cS'),o:$('oS')};
+let pending=false;
+function refresh(){
+  if(pending)return; pending=true;
+  requestAnimationFrame(()=>{
+    pending=false;
+    const w=+S.w.value,R=+S.r.value,cy=+S.c.value,ox=+S.o.value;
+    $('wV').textContent=w.toFixed(1)+' m';
+    $('rV').textContent=R.toFixed(1)+' m';
+    $('cV').textContent='모서리에서 '+(11.4-cy).toFixed(1)+' m';
+    $('oV').textContent='x = '+ox.toFixed(2)+' m';
+    const env=makeEnv(w,R,cy,ox);
+    const out=compute(env);
+    const ov=draw(env,out);
+    $('blindV').textContent=out.blind.toFixed(1)+' %';
+    $('blindV').style.color=out.blind<0.05?'var(--green)':out.blind<8?'var(--accent)':'var(--red)';
+    $('objV').textContent=ov===2?'직접 보임':ov===3?'거울로 보임':'사각지대!';
+    $('objV').style.color=ov===2?'var(--green)':ov===3?'var(--blue)':'var(--red)';
+    const fan=4*Math.asin(Math.min(w/(2*R),1))*180/Math.PI;
+    $('fanline').innerHTML='반사 부채꼴 각폭 <b>4·arcsin(w/2R) = '+fan.toFixed(1)+'°</b> · 필요 각폭 <b>47°</b> '
+      +(fan>=47?'→ 조건 충족, 사각지대 소멸':'→ 부족, 사각지대 발생')
+      +' &nbsp;(R/w = '+(R/w).toFixed(2)+', 기준 2.5)';
+  });
+}
+for(const k in S)S[k].addEventListener('input',refresh);
+document.querySelectorAll('.pbtn').forEach(b=>b.addEventListener('click',()=>{
+  const p=b.dataset.p;
+  if(p==='flat'){S.w.value=0.6;S.r.value=4.5;}
+  else if(p==='mid'){S.w.value=0.8;S.r.value=2.5;}
+  else{S.w.value=0.8;S.r.value=0.8;}
+  document.querySelectorAll('.pbtn').forEach(x=>x.classList.remove('hot'));
+  b.classList.add('hot');
+  refresh();
+}));
+window.addEventListener('resize',()=>{sizeCanvas();refresh();});
+sizeCanvas();refresh();
+</script>
+</body>
+</html>
