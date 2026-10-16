@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>COAST LAB — 해안 침식 가상 실험실</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;700&family=IBM+Plex+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#081420; --panel:#0e1e30; --panel2:#0a1826; --line:#1e3a55;
+  --ink:#e6eef8; --dim:#7f97b5; --sand:#e0b464; --sea:#2e8fd4;
+  --accent:#ffd166; --green:#37c978; --red:#ef6461; --cyan:#43d9ff;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{
+  background:radial-gradient(1100px 480px at 50% -8%,#12283f 0%,var(--bg) 60%),var(--bg);
+  color:var(--ink);font-family:'IBM Plex Sans KR',sans-serif;padding:14px 14px 44px;
+}
+.wrap{max-width:640px;margin:0 auto}
+header{padding:8px 2px 14px}
+.eyebrow{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.22em;color:var(--cyan);margin-bottom:5px}
+h1{font-size:21px;font-weight:700}
+h1 .thin{color:var(--dim);font-weight:400}
+.card{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--line);
+  border-radius:14px;overflow:hidden;box-shadow:0 10px 28px rgba(0,0,0,.4);margin-bottom:12px}
+#cv{display:block;width:100%}
+.pad{padding:14px 16px}
+.sect{font-size:12px;color:var(--cyan);letter-spacing:.14em;font-weight:700;margin-bottom:10px}
+.row3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:8px}
+.opt{border:1.5px solid var(--line);background:#0c1c2d;color:var(--ink);border-radius:10px;
+  padding:10px 4px;font-size:13px;font-weight:500;font-family:inherit;cursor:pointer;text-align:center}
+.opt small{display:block;font-size:10.5px;color:var(--dim);margin-top:3px}
+.opt.on{border-color:var(--accent);color:var(--accent);background:#1a2438}
+.opt.on small{color:#c9a94f}
+.srow{margin:12px 0 2px}
+.srow .top{display:flex;justify-content:space-between;font-size:13px;margin-bottom:5px}
+.srow .vv{font-family:'IBM Plex Mono',monospace;color:var(--accent);font-weight:700}
+input[type=range]{-webkit-appearance:none;width:100%;height:24px;background:transparent}
+input[type=range]::-webkit-slider-runnable-track{height:6px;border-radius:3px;background:#1c3550}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:50%;
+  background:var(--accent);border:3px solid #081420;margin-top:-8px;box-shadow:0 0 0 2px var(--accent)}
+input[type=range]::-moz-range-track{height:6px;border-radius:3px;background:#1c3550}
+input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:var(--accent);border:3px solid #081420}
+.btns{display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:8px;margin-top:14px}
+button.act{border:none;border-radius:10px;padding:13px 6px;font-size:14px;font-weight:700;
+  font-family:inherit;cursor:pointer;transition:transform .08s}
+button.act:active{transform:scale(.96)}
+#goBtn{background:var(--accent);color:#082}
+#goBtn{color:#3a2c00}
+#resetBtn{background:#16324b;color:var(--ink)}
+#cmpBtn{background:#134a37;color:#a6f0c6}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.stat{background:#0c1c2d;border:1px solid var(--line);border-radius:10px;padding:9px 10px}
+.stat .lb{font-size:10.5px;color:var(--dim);margin-bottom:3px;letter-spacing:.04em}
+.stat .vl{font-family:'IBM Plex Mono',monospace;font-size:17px;font-weight:700}
+.note{font-size:11.5px;color:var(--dim);line-height:1.6;margin-top:10px}
+.note b{color:#b8c6dd}
+#cmpPanel{display:none}
+.bar{display:flex;align-items:center;gap:10px;margin:9px 0}
+.bar .nm{width:86px;font-size:13px;flex:0 0 auto}
+.bar .tr{flex:1;height:22px;background:#0c1c2d;border-radius:6px;overflow:hidden;border:1px solid var(--line)}
+.bar .fl{height:100%;border-radius:5px;display:flex;align-items:center;justify-content:flex-end;
+  padding-right:7px;font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:700;color:#082;min-width:34px}
+.calib summary{cursor:pointer;font-size:13px;color:var(--cyan);padding:12px 16px;font-weight:500}
+.calib .pad{padding-top:2px}
+footer{text-align:center;font-size:11px;color:var(--dim);line-height:1.7;margin-top:18px}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div class="eyebrow">COAST LAB · VIRTUAL WAVE TANK</div>
+  <h1>해안 침식 가상 실험실 <span class="thin">— 파도발생장치 시뮬레이션 (테스트판)</span></h1>
+</header>
+
+<div class="card"><canvas id="cv"></canvas></div>
+
+<div class="card"><div class="pad">
+  <div class="sect">① 독립변인 — 해안 보호 구조물</div>
+  <div class="row3" id="structRow" style="grid-template-columns:repeat(2,1fr)">
+    <button class="opt on" data-s="none">없음<small>기준 조건</small></button>
+    <button class="opt" data-s="tetra">테트라포드<small>콘크리트 구조물</small></button>
+    <button class="opt" data-s="plant">수초<small>자연 기반</small></button>
+    <button class="opt" data-s="combo">테트라포드＋수초<small>복합 방어</small></button>
+  </div>
+
+  <div class="sect" style="margin-top:14px">② 통제변인 — 파도 조건 (장치 손잡이와 동일)</div>
+  <div class="row3" id="crankRow">
+    <button class="opt" data-r="5">r = 5mm<small>왕복 10mm · 약한 파도</small></button>
+    <button class="opt on" data-r="10">r = 10mm<small>왕복 20mm · 중간 파도</small></button>
+    <button class="opt" data-r="15">r = 15mm<small>왕복 30mm · 강한 파도</small></button>
+  </div>
+  <div class="srow"><div class="top"><span>파도 주기 (PWM 속도조절기)</span><span class="vv" id="perV"></span></div>
+    <input type="range" id="perS" min="0.6" max="2.0" step="0.1" value="1.2"></div>
+  <div class="srow"><div class="top"><span>파도 횟수</span><span class="vv" id="nV"></span></div>
+    <input type="range" id="nS" min="10" max="60" step="5" value="30"></div>
+
+  <div class="btns">
+    <button class="act" id="goBtn">▶ 실험 시작</button>
+    <button class="act" id="resetBtn">해안 리셋</button>
+    <button class="act" id="cmpBtn">4조건 비교</button>
+  </div>
+</div></div>
+
+<div class="card"><div class="pad">
+  <div class="sect">③ 종속변인 — 측정 결과</div>
+  <div class="stats">
+    <div class="stat"><div class="lb">진행</div><div class="vl" id="waveV">0 / 30</div></div>
+    <div class="stat"><div class="lb">구조물 앞 파고</div><div class="vl" id="h1V">–</div></div>
+    <div class="stat"><div class="lb">구조물 뒤 파고</div><div class="vl" id="h2V">–</div></div>
+    <div class="stat"><div class="lb">파고 감소율</div><div class="vl" id="hrV">–</div></div>
+    <div class="stat"><div class="lb">에너지 감소율</div><div class="vl" id="erV">–</div></div>
+    <div class="stat"><div class="lb">모래 유실량</div><div class="vl" id="lossV" style="color:var(--red)">0.0 cm²</div></div>
+  </div>
+  <div class="note">에너지는 파고의 제곱에 비례합니다 (E ∝ H²). 파고가 20% 줄면 에너지는 36% 줄어듭니다.</div>
+</div></div>
+
+<div class="card" id="cmpPanel"><div class="pad">
+  <div class="sect">4조건 자동 비교 — 같은 파도, 구조물만 교체</div>
+  <div id="cmpBars"></div>
+  <div class="note" id="cmpNote"></div>
+</div></div>
+
+<div class="card calib"><details>
+  <summary>⚙ 보정 계수 — 실제 수조 실험 값으로 맞추는 곳</summary>
+  <div class="pad">
+  <div class="srow"><div class="top"><span>테트라포드 파고 투과율 Kt</span><span class="vv" id="ktTV"></span></div>
+    <input type="range" id="ktT" min="0.4" max="1.0" step="0.01" value="0.80"></div>
+  <div class="srow"><div class="top"><span>수초 파고 투과율 Kt</span><span class="vv" id="ktPV"></span></div>
+    <input type="range" id="ktP" min="0.4" max="1.0" step="0.01" value="0.72"></div>
+  <div class="srow"><div class="top"><span>침식 계수 k (모래 민감도)</span><span class="vv" id="keV"></span></div>
+    <input type="range" id="keS" min="0.04" max="0.30" step="0.01" value="0.12"></div>
+  <div class="note"><b>중요:</b> 이 값들은 정답이 아니라 가설입니다. 실제 수조 실험(조건별 3회 평균)의
+  파고와 유실량에 맞춰 이 슬라이더를 조정한 뒤, 실험하지 않은 조건을 예측하는 데 사용하세요.
+  통제변인 고정값 — 모래 1.5kg · 물높이 10cm · 해안 경사 20° · 구조물 위치 40cm.</div>
+  </div>
+</details></div>
+
+<footer>침식 모델: 유실량 = k × (Kt×H)² × 파도횟수 · 파고 H = 0.15 × 왕복폭(mm)<br>
+복합 조건 예측: Kt(복합) = Kt(테트라) × Kt(수초) — 곱셈 가설 · 실물 실험으로 검증<br>「파도에 강한 해안은 무엇일까?」 실물 모형 실험 보조용 가상 실험실</footer>
+</div>
+
+<script>
+"use strict";
+// ─── 물리 모델 ───
+const TANK=90, DEPTH=10, BEACH_X=55, SLOPE=Math.tan(20*Math.PI/180), STRUCT_X=40;
+const DX=0.5, NXS=Math.round(TANK/DX);
+let sand=new Float32Array(NXS);
+function resetSand(){
+  for(let i=0;i<NXS;i++){
+    const x=i*DX;
+    sand[i]=x<BEACH_X?0:Math.min((x-BEACH_X)*SLOPE,15);
+  }
+}
+resetSand();
+const state={struct:'none',r:10,per:1.2,N:30,run:false,wave:0,t:0,loss:0,retreat:0,shore0:0};
+const Kt=()=>state.struct==='tetra'?+ktT.value
+        :state.struct==='plant'?+ktP.value
+        :state.struct==='combo'?(+ktT.value)*(+ktP.value)   // 곱셈 가설: 두 효과가 연달아 적용
+        :1.0;
+const H0=()=>0.15*(2*state.r);            // 파고(cm) = 0.15 × 왕복폭(mm)
+const shoreX=()=>{ for(let i=0;i<NXS;i++) if(sand[i]>=DEPTH) return i*DX; return TANK; };
+
+function applyOneWave(){
+  const A=Kt()*H0(), e=(+keS.value)*A*A;   // 이번 파도의 침식 단면적(cm²)
+  // 수면±A 범위의 모래를 깎아 앞바다에 60% 퇴적
+  let removed=0, cells=[];
+  for(let i=0;i<NXS;i++){
+    if(sand[i]>DEPTH-A && sand[i]<DEPTH+A+1.2) cells.push(i);
+  }
+  if(cells.length){
+    const per=e/cells.length;
+    for(const i of cells){ sand[i]=Math.max(0,sand[i]-per/DX); removed+=per; }
+    // 퇴적: 해안 발치 앞 6cm 구간
+    const toe=cells[0], dep=removed*0.6/(12);
+    for(let i=Math.max(0,toe-12);i<toe;i++) sand[i]+=dep/DX;
+  }
+  state.loss+=e;
+  state.retreat=Math.max(0,shoreX()-state.shore0);
+}
+
+// ─── 캔버스 ───
+const cv=document.getElementById('cv'),ctx=cv.getContext('2d');
+let PX=1,SC=1,OX=0,OY=0,CH=0;
+function size(){
+  PX=Math.min(devicePixelRatio||1,2);
+  const w=cv.parentElement.clientWidth,h=Math.round(w*0.56);
+  cv.width=w*PX;cv.height=h*PX;cv.style.height=h+'px';
+  SC=(w-24)/TANK;OX=12;CH=h;OY=h-16;
+}
+const X=x=>OX+x*SC, Y=y=>OY-y*SC;
+
+function eta(x){  // 수면 파형
+  if(!state.run&&state.wave===0)return 0;
+  const A0=H0(), L=18, k=2*Math.PI/L, om=2*Math.PI/state.per;
+  let A=x<STRUCT_X? A0 : x<STRUCT_X+6? A0*(1+(Kt()-1)*(x-STRUCT_X)/6) : Kt()*A0;
+  const sx=shoreX(); if(x>sx-8)A*=Math.max(0,(sx-x)/8+0.15);
+  return A*Math.sin(k*x-om*state.t)*0.5;  // 진폭=파고/2
+}
+
+function draw(){
+  ctx.setTransform(PX,0,0,PX,0,0);
+  ctx.clearRect(0,0,cv.width,cv.height);
+  // 물
+  ctx.beginPath();ctx.moveTo(X(10),Y(0));
+  for(let x=10;x<=TANK;x+=0.7){
+    const s=sand[Math.min(NXS-1,(x/DX)|0)];
+    const wl=Math.max(DEPTH+eta(x),0);
+    ctx.lineTo(X(x),Y(Math.max(wl,Math.min(s,wl))));
+  }
+  ctx.lineTo(X(TANK),Y(0));ctx.closePath();
+  const g=ctx.createLinearGradient(0,Y(DEPTH+4),0,Y(0));
+  g.addColorStop(0,'rgba(70,160,220,.85)');g.addColorStop(1,'rgba(20,70,120,.9)');
+  ctx.fillStyle=g;ctx.fill();
+  // 모래
+  ctx.beginPath();ctx.moveTo(X(0),Y(0));
+  for(let i=0;i<NXS;i++)ctx.lineTo(X(i*DX),Y(sand[i]));
+  ctx.lineTo(X(TANK),Y(0));ctx.closePath();
+  ctx.fillStyle='#dab05e';ctx.fill();
+  ctx.strokeStyle='#a87f36';ctx.lineWidth=1.5;ctx.stroke();
+  // 구조물
+  const drawTetra=ox2=>{
+    ctx.fillStyle='#9aa7b5';
+    for(const [dx,dy,s] of [[0,0,4.2],[3,0,4.2],[1.5,2.6,3.6]]){
+      const bx=STRUCT_X+ox2+dx,by=DEPTH-6+dy;
+      ctx.beginPath();ctx.moveTo(X(bx-s/2),Y(by));ctx.lineTo(X(bx+s/2),Y(by));ctx.lineTo(X(bx),Y(by+s));
+      ctx.closePath();ctx.fill();
+    }
+  };
+  const drawPlant=ox2=>{
+    ctx.strokeStyle='#3fae5c';ctx.lineWidth=2.4;ctx.lineCap='round';
+    for(let p=0;p<7;p++){
+      const bx=STRUCT_X+ox2+p*1.1-0.5, sway=Math.sin(2*Math.PI/state.per*state.t+p)*1.4;
+      ctx.beginPath();ctx.moveTo(X(bx),Y(sand[(bx/DX)|0]||0));
+      ctx.quadraticCurveTo(X(bx+sway*0.5),Y(DEPTH-2),X(bx+sway),Y(DEPTH+1.6));ctx.stroke();
+    }
+  };
+  if(state.struct==='tetra')drawTetra(0);
+  else if(state.struct==='plant')drawPlant(0);
+  else if(state.struct==='combo'){drawTetra(-5);drawPlant(4);}
+  // 파도판 + 크랭크
+  const om=2*Math.PI/state.per, px=8+state.r*0.1*Math.sin(om*state.t)*((state.run||state.wave>0)?1:0);
+  ctx.fillStyle='#dfe6ee';ctx.fillRect(X(px)-3,Y(DEPTH+4),6,(DEPTH+5)*SC*0.9);
+  const ccx=X(3),ccy=Y(DEPTH+7),cr=13;
+  ctx.strokeStyle='#8fa4c0';ctx.lineWidth=2;
+  ctx.beginPath();ctx.arc(ccx,ccy,cr,0,7);ctx.stroke();
+  const ha=om*state.t,hx=ccx+cr*0.72*(state.r/15)*Math.cos(ha),hy=ccy+cr*0.72*(state.r/15)*Math.sin(ha);
+  ctx.fillStyle='#ffd166';ctx.beginPath();ctx.arc(hx,hy,3.4,0,7);ctx.fill();
+  ctx.strokeStyle='#ffd166';ctx.lineWidth=1.6;
+  ctx.beginPath();ctx.moveTo(hx,hy);ctx.lineTo(X(px)-3,Y(DEPTH+2));ctx.stroke();
+  // 라벨
+  ctx.font='700 11px "IBM Plex Sans KR"';ctx.fillStyle='#9db4d4';
+  ctx.fillText('파도발생기',X(1),Y(DEPTH+11));
+  if(state.struct!=='none'){
+    const nm=state.struct==='tetra'?'테트라포드':state.struct==='plant'?'수초':'테트라포드＋수초';
+    ctx.fillText(nm,X(STRUCT_X-6),Y(DEPTH+7.5));
+  }
+  ctx.fillText('모래 해안',X(70),Y(14.5));
+}
+
+// ─── 실행 루프 ───
+let last=0;
+function loop(ts){
+  const dt=Math.min((ts-last)/1000,0.05);last=ts;
+  if(state.run){
+    state.t+=dt;
+    const done=Math.floor(state.t/state.per);
+    while(state.wave<done&&state.wave<state.N){state.wave++;applyOneWave();}
+    if(state.wave>=state.N){state.run=false;}
+    updStats();
+  }
+  draw();
+  requestAnimationFrame(loop);
+}
+
+// ─── UI ───
+const $=id=>document.getElementById(id);
+function updStats(){
+  $('waveV').textContent=state.wave+' / '+state.N;
+  const h1=H0(),h2=Kt()*H0();
+  $('h1V').textContent=h1.toFixed(1)+' cm';
+  $('h2V').textContent=h2.toFixed(1)+' cm';
+  $('hrV').textContent=(100*(1-Kt())).toFixed(0)+' %';
+  $('erV').textContent=(100*(1-Kt()*Kt())).toFixed(0)+' %';
+  $('lossV').textContent=state.loss.toFixed(1)+' cm²';
+}
+function updLabels(){
+  $('perV').textContent=state.per.toFixed(1)+' 초';
+  $('nV').textContent=state.N+' 회';
+  $('ktTV').textContent=(+ktT.value).toFixed(2);
+  $('ktPV').textContent=(+ktP.value).toFixed(2);
+  $('keV').textContent=(+keS.value).toFixed(2);
+  updStats();
+}
+function fullReset(){state.run=false;state.wave=0;state.t=0;state.loss=0;state.retreat=0;
+  resetSand();state.shore0=shoreX();updStats();$('cmpPanel').style.display='none';}
+document.querySelectorAll('#structRow .opt').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('#structRow .opt').forEach(x=>x.classList.remove('on'));
+  b.classList.add('on');state.struct=b.dataset.s;fullReset();});
+document.querySelectorAll('#crankRow .opt').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('#crankRow .opt').forEach(x=>x.classList.remove('on'));
+  b.classList.add('on');state.r=+b.dataset.r;fullReset();});
+$('perS').oninput=e=>{state.per=+e.target.value;updLabels();};
+$('nS').oninput=e=>{state.N=+e.target.value;updLabels();};
+ktT.oninput=ktP.oninput=keS.oninput=updLabels;
+$('goBtn').onclick=()=>{fullReset();state.run=true;};
+$('resetBtn').onclick=fullReset;
+$('cmpBtn').onclick=()=>{
+  const A0=H0(),k=+keS.value,N=state.N;
+  const kT=+ktT.value,kP=+ktP.value;
+  const rows=[['없음',1.0,'#ef6461'],['테트라포드',kT,'#8fb4d9'],
+              ['수초',kP,'#37c978'],['테트라＋수초',kT*kP,'#ffd166']];
+  const vals=rows.map(([n,kt,c])=>({n,c,E:k*(kt*A0)**2*N}));
+  const mx=vals[0].E;
+  $('cmpBars').innerHTML=vals.map(v=>
+    `<div class="bar"><div class="nm">${v.n}</div><div class="tr">
+     <div class="fl" style="width:${Math.max(100*v.E/mx,12)}%;background:${v.c}">${v.E.toFixed(1)}</div></div></div>`).join('');
+  const pct=i=>(100*(mx-vals[i].E)/mx).toFixed(0);
+  $('cmpNote').innerHTML=`같은 파도(파고 ${A0.toFixed(1)}cm × ${N}회) 기준 모래 유실량(cm²). `+
+    `기준 대비 침식 감소율 — 테트라포드 <b>${pct(1)}%</b>, 수초 <b>${pct(2)}%</b>, 복합 <b>${pct(3)}%</b>. `+
+    `복합 조건은 두 투과율을 곱한 값(Kt=${(kT*kP).toFixed(2)})으로 예측한 것입니다. `+
+    `실제 실험이 이 곱셈 예측과 같은지 다른지가 검증 포인트입니다.`;
+  $('cmpPanel').style.display='block';
+};
+window.addEventListener('resize',()=>{size();});
+size();fullReset();updLabels();requestAnimationFrame(loop);
+</script>
+</body>
+</html>
